@@ -1,0 +1,62 @@
+name: Wake Up Supabase
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # Runs once per day at 06:00 UTC
+  workflow_dispatch:       # Allows manual runs
+
+jobs:
+  ping-projects:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate SUPABASE_PROJECTS_JSON secret exists
+        run: |
+          if [ -z "${{ secrets.SUPABASE_PROJECTS_JSON }}" ]; then
+            echo "❌ Secret SUPABASE_PROJECTS_JSON is not set."
+            echo "Go to Settings → Secrets → Actions and add it."
+            exit 1
+          fi
+
+      - name: Ping Supabase projects to keep them awake
+        env:
+          SUPABASE_PROJECTS_JSON: ${{ secrets.SUPABASE_PROJECTS_JSON }}
+        run: |
+          sudo apt-get update -y > /dev/null
+          sudo apt-get install -y jq > /dev/null
+
+          LENGTH=$(echo "$SUPABASE_PROJECTS_JSON" | jq '. | length')
+          echo "📦 Found $LENGTH Supabase project(s)."
+
+          if [ "$LENGTH" -eq 0 ]; then
+            echo "⚠️ No projects defined in SUPABASE_PROJECTS_JSON."
+            exit 0
+          fi
+
+          for i in $(seq 0 $((LENGTH - 1))); do
+            URL=$(echo "$SUPABASE_PROJECTS_JSON" | jq -r ".[$i].url")
+            KEY=$(echo "$SUPABASE_PROJECTS_JSON" | jq -r ".[$i].anon_key")
+
+            if [ -z "$URL" ] || [ "$URL" = "null" ]; then
+              echo "⚠️ Skipping project at index $i — missing URL."
+              continue
+            fi
+
+            if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
+              echo "⚠️ Skipping $URL — missing anon_key."
+              continue
+            fi
+
+            HEALTH_URL="${URL%/}/auth/v1/health"
+            echo "🌐 Pinging: $HEALTH_URL"
+
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "apikey: $KEY" \
+              "$HEALTH_URL")
+
+            if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+              echo "✅ $URL responded with HTTP $HTTP_CODE — awake and healthy."
+            else
+              echo "❌ $URL responded with HTTP $HTTP_CODE — might be paused or invalid."
+            fi
+          done
