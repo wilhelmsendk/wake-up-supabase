@@ -1,123 +1,135 @@
 # Wake Up Supabase
 
-A tiny GitHub Actions helper that prevents **free Supabase projects**
-from being automatically paused due to inactivity.
+A tiny GitHub Actions helper that prevents free Supabase projects from being automatically paused due to inactivity.
 
 Supabase pauses inactive free-tier projects after about a week.  
-If a project stays paused for **90 days**, it is permanently deleted.
+If a project stays paused for 90 days, it is permanently deleted.
 
-This workflow simply performs a lightweight daily ping to each project’s  
-`/auth/v1/health` endpoint using **anon keys** (safe to use, public by design).  
-This counts as “activity” and keeps the project alive.
+This workflow performs a lightweight daily ping to each project’s  
+`/auth/v1/health` endpoint using anon keys (safe to use, public by design).  
+This activity prevents auto-pausing and keeps your projects alive.
 
 ---
 
 ## 🚀 Features
 
-- Keeps **any number of Supabase projects** awake
-- Works even if projects are owned by **different Supabase accounts**
-- Uses **GitHub Secrets** only (no keys in repo!)
-- Fully automated, runs daily
+- Keeps any number of Supabase projects awake  
+- Works even if projects span multiple Supabase accounts  
+- Stores keys only in GitHub Secrets (never in the repo)  
+- Fully automated — runs once per day  
 - Completely free
 
 ---
 
 ## 🛡 Security
 
-- Only **anon keys** are used — these are safe to expose in public frontends.
-- All keys are stored only in **GitHub Actions Secrets**, never committed.
-- The workflow never prints keys to logs.
-- Repo contains **zero** project information.
+- Uses anon keys only (never the service_role key)  
+- Secrets stored securely in GitHub Actions Secrets  
+- Workflow never prints keys  
+- Repo contains zero sensitive information
 
 ---
 
 ## 🧩 Setup
 
 ### 1. Fork this repository  
-Click the **Fork** button at the top right of GitHub.
+Click the Fork button at the top right of GitHub.
 
 ---
 
-### 2. Add your Supabase projects to a GitHub Secret  
+### 2. Add your Supabase projects to a GitHub Secret
 
 Go to:
 
-**Settings → Secrets and variables → Actions → New repository secret**
+Settings → Secrets and variables → Actions → New repository secret
 
 Create a secret named:
 
-SUPABASE_PROJECTS_JSON
-
-kotlin
-Kopier kode
+    SUPABASE_PROJECTS_JSON
 
 Paste your projects in this format:
 
-```json
-[
-  {
-    "url": "https://your-project-1.supabase.co",
-    "anon_key": "YOUR_PROJECT_1_ANON_PUBLIC_KEY"
-  },
-  {
-    "url": "https://your-project-2.supabase.co",
-    "anon_key": "YOUR_PROJECT_2_ANON_PUBLIC_KEY"
-  }
-]
+    [
+      {
+        "url": "https://your-project-1.supabase.co",
+        "anon_key": "YOUR_PROJECT_1_ANON_PUBLIC_KEY"
+      },
+      {
+        "url": "https://your-project-2.supabase.co",
+        "anon_key": "YOUR_PROJECT_2_ANON_PUBLIC_KEY"
+      }
+    ]
+
 Add as many projects as you want.
 
-💡 Only use anon keys — never the service_role key.
-You can find anon keys here:
-Supabase Dashboard → Project Settings → API
+💡 Only use anon keys — never the service_role key.  
+You can find anon keys under: Supabase Dashboard → Project Settings → API
 
-3. Enable GitHub Actions
-Go to the Actions tab → click Enable workflows if prompted.
+---
 
-4. (Optional) Run once manually
-In the Actions tab → select the workflow → click Run workflow to test immediately.
+### 3. Enable GitHub Actions
 
-⏱ How It Works
-The action runs every day at 06:00 UTC.
+Go to the Actions tab → enable workflows if required.
 
-It loads your SUPABASE_PROJECTS_JSON secret, parses it, and for each project:
+---
 
-Calls
-https://your-project.supabase.co/auth/v1/health
+### 4. (Optional) Run manually once
 
-Sends the anon key using the apikey header
+Actions tab → select the workflow → Run workflow.
 
-Logs whether the project responded correctly
+---
 
-Supabase registers this as legitimate activity, preventing auto-pausing.
+## ⏱ How It Works
 
-🧪 Example Log Output
-bash
-Kopier kode
-Found 3 projects.
-Pinging https://abc123.supabase.co/auth/v1/health ...
-✔ abc123.supabase.co is awake (HTTP 200)
-Pinging https://def456.supabase.co/auth/v1/health ...
-✔ def456.supabase.co is awake (HTTP 200)
-❓ FAQ
-Does this work for multiple Supabase accounts?
-Yes — just add all projects to the JSON list in the secret.
+This action runs every day at 06:00 UTC.
 
-Can I make the repo public?
-Yes — all sensitive data stays in your GitHub Secrets.
+For each project in your SUPABASE_PROJECTS_JSON secret, it:
 
-Does this violate any Supabase rules?
-No. You're only hitting public anon endpoints.
+1. Calls  
+   https://your-project.supabase.co/auth/v1/health
 
-❤️ Contribute
-This project is intentionally tiny.
+2. Sends the anon key in an `apikey` header  
+3. Checks whether the project responded correctly  
+
+Supabase counts this as legitimate activity and will not pause the project.
+
+---
+
+## 🧪 Example Log Output
+
+    Found 3 projects.
+    Pinging https://abc123.supabase.co/auth/v1/health ...
+    ✔ abc123.supabase.co is awake (HTTP 200)
+    Pinging https://def456.supabase.co/auth/v1/health ...
+    ✔ def456.supabase.co is awake (HTTP 200)
+
+---
+
+## ❓ FAQ
+
+**Does this work for multiple Supabase accounts?**  
+Yes — simply add all your project URLs and anon keys to the secret.
+
+**Can this repo be public?**  
+Yes — all sensitive data stays inside GitHub Secrets.
+
+**Does this violate Supabase rules?**  
+No. You're using public anon endpoints exactly as intended.
+
+---
+
+## ❤️ Contribute
+
+This project is intentionally minimal.  
 Feel free to open issues or PRs to add features like:
 
-Slack / Discord notifications
+- Slack / Discord alerts  
+- Error notifications  
+- JSON schema validation  
+- Multi-region health checks  
+- Optional logging dashboard  
 
-Error reporting
+---
 
-JSON schema validation
-
-Multi-region pinging
-
-Enjoy :-) @wilhelmsendk
+Enjoy!  
+@wilhelmsendk
