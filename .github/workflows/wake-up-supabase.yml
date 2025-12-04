@@ -47,15 +47,27 @@ jobs:
               continue
             fi
 
-            HEALTH_URL="${URL%/}/auth/v1/health"
-            echo "🌐 Pinging: $HEALTH_URL"
+            # REST endpoint for DB activity (must exist)
+            REST_URL="${URL%/}/rest/v1/keep_alive?select=id&limit=1"
 
+            echo "🌐 Pinging DB via: $REST_URL"
+
+            # Allow curl to fail without killing the job
+            set +e
             HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
               -H "apikey: $KEY" \
-              "$HEALTH_URL")
+              -H "Authorization: Bearer $KEY" \
+              "$REST_URL")
+            CURL_EXIT=$?
+            set -e
+
+            if [ "$CURL_EXIT" -ne 0 ]; then
+              echo "❌ Curl failed for $URL (exit code $CURL_EXIT). Skipping."
+              continue
+            fi
 
             if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-              echo "✅ $URL responded with HTTP $HTTP_CODE — awake and healthy."
+              echo "✅ $URL responded with HTTP $HTTP_CODE — DB activity logged."
             else
               echo "❌ $URL responded with HTTP $HTTP_CODE — might be paused or invalid."
             fi
