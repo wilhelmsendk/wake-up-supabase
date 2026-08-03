@@ -2,8 +2,8 @@ name: Wake Up Supabase
 
 on:
   schedule:
-    - cron: "0 6 * * *"   # runs everyday at. 06:00 UTC
-  workflow_dispatch:       # Allows manual triggering under Actions
+    - cron: "0 6 * * *"   # Runs automatically every day at 06:00 UTC
+  workflow_dispatch:       # Allows manual trigger from the Actions tab
 
 jobs:
   ping-projects:
@@ -35,14 +35,17 @@ jobs:
           for idx, proj in enumerate(projects):
               url = proj.get("url", "").rstrip("/")
               key = proj.get("anon_key", "")
+              name = proj.get("name", "")
+
+              # Format display name (e.g. "savinghero (https://...)")
+              display_name = f"{name} ({url})" if name else url
 
               if not url or not key:
-                  print(f"⚠️ Skipping index {idx} — missing url or anon_key.")
+                  print(f"⚠️ Skipping index {idx} [{name or \"unnamed\"}] — missing url or anon_key.")
                   continue
 
-              # Pings the PostgREST root endpoint. This triggers a real database query.
               target_url = f"{url}/rest/v1/"
-              print(f"🌐 Pinging Database (PostgREST) via: {target_url}")
+              print(f"🌐 Pinging Database: {display_name}")
 
               req = urllib.request.Request(
                   target_url,
@@ -55,10 +58,9 @@ jobs:
               try:
                   with urllib.request.urlopen(req) as response:
                       code = response.getcode()
-                      print(f"✅ {url} responded with HTTP {code} — database is awake!\n")
+                      print(f"✅ {display_name} responded with HTTP {code} — database is awake!\n")
               except urllib.error.HTTPError as e:
-                  # HTTP 200/204/400/404 all indicate the database engine responded
-                  print(f"✅ {url} responded with HTTP {e.code} — database responded.\n")
+                  print(f"✅ {display_name} responded with HTTP {e.code} — database responded.\n")
               except Exception as e:
-                  print(f"❌ Connection error for {url}: {e}\n")
+                  print(f"❌ Connection error for {display_name}: {e}\n")
           '
