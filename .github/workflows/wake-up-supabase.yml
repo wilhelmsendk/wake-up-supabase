@@ -2,72 +2,63 @@ name: Wake Up Supabase
 
 on:
   schedule:
-    - cron: "0 6 * * *"   # Runs once per day at 06:00 UTC
-  workflow_dispatch:       # Allows manual runs from the Actions tab
+    - cron: "0 6 * * *"   # runs everyday at. 06:00 UTC
+  workflow_dispatch:       # Allows manual triggering under Actions
 
 jobs:
   ping-projects:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Validate SUPABASE_PROJECTS_JSON secret exists
+      - name: Ping Supabase projects via PostgREST
+        env:
+          SUPABASE_PROJECTS_JSON: ${{ secrets.SUPABASE_PROJECTS_JSON }}
         run: |
-          if [ -z "${{ secrets.SUPABASE_PROJECTS_JSON }}" ]; then
+          if [ -z "$SUPABASE_PROJECTS_JSON" ]; then
             echo "❌ Secret SUPABASE_PROJECTS_JSON is not set."
             echo "Go to Settings → Secrets and variables → Actions and add it."
             exit 1
           fi
 
-      - name: Ping Supabase projects to keep them awake
-        env:
-          SUPABASE_PROJECTS_JSON: ${{ secrets.SUPABASE_PROJECTS_JSON }}
-        run: |
-          # Install jq for JSON parsing
-          sudo apt-get update -y > /dev/null
-          sudo apt-get install -y jq > /dev/null
+          python3 -c '
+          import json, os, urllib.request, urllib.error
 
-          LENGTH=$(echo "$SUPABASE_PROJECTS_JSON" | jq '. | length')
-          echo "📦 Found $LENGTH Supabase project(s)."
+          data = os.environ.get("SUPABASE_PROJECTS_JSON", "[]")
+          try:
+              projects = json.loads(data)
+          except Exception as e:
+              print(f"❌ Could not parse SUPABASE_PROJECTS_JSON: {e}")
+              exit(1)
 
-          if [ "$LENGTH" -eq 0 ]; then
-            echo "⚠️ No projects defined in SUPABASE_PROJECTS_JSON."
-            exit 0
-          fi
+          print(f"📦 Found {len(projects)} Supabase project(s).\n")
 
-          for i in $(seq 0 $((LENGTH - 1))); do
-            URL=$(echo "$SUPABASE_PROJECTS_JSON" | jq -r ".[$i].url")
-            KEY=$(echo "$SUPABASE_PROJECTS_JSON" | jq -r ".[$i].anon_key")
+          for idx, proj in enumerate(projects):
+              url = proj.get("url", "").rstrip("/")
+              key = proj.get("anon_key", "")
 
-            if [ -z "$URL" ] || [ "$URL" = "null" ]; then
-              echo "⚠️ Skipping project at index $i — missing url."
-              continue
-            fi
+              if not url or not key:
+                  print(f"⚠️ Skipping index {idx} — missing url or anon_key.")
+                  continue
 
-            if [ -z "$KEY" ] || [ "$KEY" = "null" ]; then
-              echo "⚠️ Skipping $URL — missing anon_key."
-              continue
-            fi
+              # Pings the PostgREST root endpoint. This triggers a real database query.
+              target_url = f"{url}/rest/v1/"
+              print(f"🌐 Pinging Database (PostgREST) via: {target_url}")
 
-            # Auth health endpoint – always exists and is safe to call with anon key
-            HEALTH_URL="${URL%/}/auth/v1/health"
-            echo "🌐 Pinging AUTH via: $HEALTH_URL"
+              req = urllib.request.Request(
+                  target_url,
+                  headers={
+                      "apikey": key,
+                      "Authorization": f"Bearer {key}"
+                  }
+              )
 
-            # Allow curl to fail without killing the whole job
-            set +e
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-              -H "apikey: $KEY" \
-              "$HEALTH_URL")
-            CURL_EXIT=$?
-            set -e
-
-            if [ "$CURL_EXIT" -ne 0 ]; then
-              echo "❌ Curl failed for $URL (exit code $CURL_EXIT). Skipping."
-              continue
-            fi
-
-            if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-              echo "✅ $URL responded with HTTP $HTTP_CODE — project is reachable."
-            else
-              echo "❌ $URL responded with HTTP $HTTP_CODE — check project status or URL."
-            fi
-          done
+              try:
+                  with urllib.request.urlopen(req) as response:
+                      code = response.getcode()
+                      print(f"✅ {url} responded with HTTP {code} — database is awake!\n")
+              except urllib.error.HTTPError as e:
+                  # HTTP 200/204/400/404 all indicate the database engine responded
+                  print(f"✅ {url} responded with HTTP {e.code} — database responded.\n")
+              except Exception as e:
+                  print(f"❌ Connection error for {url}: {e}\n")
+          '
