@@ -43,48 +43,44 @@ Go to:
 Create a secret named:  
 `SUPABASE_PROJECTS_JSON`
 
-Paste your projects in this JSON format (you can use either legacy `anon` keys or new `sb_publishable_` keys):
+Paste your projects in this JSON format:
 
 ```json
 [
   {
     "name": "savinghero",
-    "url": "https://your-project-1.supabase.co",
+    "url": "[https://your-project-1.supabase.co](https://your-project-1.supabase.co)",
     "anon_key": "YOUR_PROJECT_1_ANON_OR_PUBLISHABLE_KEY"
   },
   {
     "name": "my-test-app",
-    "url": "https://your-project-2.supabase.co",
+    "url": "[https://your-project-2.supabase.co](https://your-project-2.supabase.co)",
     "anon_key": "YOUR_PROJECT_2_ANON_OR_PUBLISHABLE_KEY"
   }
 ]
----
+Add as many projects as you want.
 
-### 3. Enable GitHub Actions
+💡 Note: Only use anon or publishable keys — never use the service_role key.
 
-Go to the **Actions** tab → enable workflows if required.
+You can find your key under: Supabase Dashboard → Project Settings → API.
+3. Enable GitHub Actions
+Go to the Actions tab → enable workflows if required.
 
----
+4. (Optional) Run manually once
+Go to Actions tab → select Wake Up Supabase → click Run workflow.
 
-### 4. (Optional) Run manually once
-
-Actions tab → select **Wake Up Supabase** → click **Run workflow**.
-
----
-
-## ⏱ How It Works
-
+⏱ How It Works
 This action runs automatically every day at 06:00 UTC.
 
-For each project in your `SUPABASE_PROJECTS_JSON` secret, it:
+For each project in your SUPABASE_PROJECTS_JSON secret, it:
 
-1. Calls  
-   `https://your-project.supabase.co/rest/v1/`
+Calls the Supabase Auth Health endpoint:
 
-2. Sends the anon key in both `apikey` and `Authorization: Bearer <anon_key>` headers.
-3. PostgREST queries the database schema, which resets Supabase's auto-pause timer and keeps the project active.
+https://your-project.supabase.co/auth/v1/health
 
----
+Sends the key in both apikey and Authorization: Bearer <key> headers.
+
+The health check resets Supabase's auto-pause timer and keeps the project active.
 
 ## 🧪 Example Log Output
 
