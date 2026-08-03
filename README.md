@@ -5,27 +5,25 @@ A tiny GitHub Actions helper that prevents free Supabase projects from being aut
 Supabase pauses inactive free-tier projects after about a week.  
 If a project stays paused for 90 days, it is permanently deleted.
 
-This workflow performs a lightweight daily ping to each project’s  
-`/auth/v1/health` endpoint using anon keys (safe to use, public by design).  
-This activity prevents auto-pausing and keeps your projects alive.
+This workflow performs a daily ping directly against each project's **PostgREST engine** (`/rest/v1/`) using your public `anon` key. This forces a database query execution, which resets Supabase's internal inactivity timer and keeps your projects alive.
 
 ---
 
 ## 🚀 Features
 
-- Keeps any number of Supabase projects awake  
-- Works even if projects span multiple Supabase accounts  
-- Stores keys only in GitHub Secrets (never in the repo)  
-- Fully automated — runs once per day  
-- Completely free
+- **Database-level pings**: Hits `/rest/v1/` to ensure Supabase registers real database activity
+- **Zero extra dependencies**: Built with pure Python in GitHub Actions for fast, clean execution
+- **Multi-project support**: Keeps any number of Supabase projects awake (even across different accounts)
+- **Secure**: Keys are stored safely in GitHub Actions Secrets (never in public code or logs)
+- **Completely free**
 
 ---
 
 ## 🛡 Security
 
-- Uses anon keys only (never the service_role key)  
-- Secrets stored securely in GitHub Actions Secrets  
-- Workflow never prints keys  
+- Uses `anon` keys only (never use your `service_role` key)
+- Secrets stored securely in GitHub Actions Secrets
+- Workflow never prints or reveals keys in execution logs
 - Repo contains zero sensitive information
 
 ---
@@ -33,7 +31,7 @@ This activity prevents auto-pausing and keeps your projects alive.
 ## 🧩 Setup
 
 ### 1. Fork this repository  
-Click the Fork button at the top right of GitHub.
+Click the **Fork** button at the top right of GitHub.
 
 ---
 
@@ -41,67 +39,73 @@ Click the Fork button at the top right of GitHub.
 
 Go to:
 
-Settings → Secrets and variables → Actions → New repository secret
+**Settings → Secrets and variables → Actions → New repository secret**
 
 Create a secret named:
 
-    SUPABASE_PROJECTS_JSON
+```text
+SUPABASE_PROJECTS_JSON
+```
 
-Paste your projects in this format:
+Paste your projects in this JSON format:
 
-    [
-      {
-        "url": "https://your-project-1.supabase.co",
-        "anon_key": "YOUR_PROJECT_1_ANON_PUBLIC_KEY"
-      },
-      {
-        "url": "https://your-project-2.supabase.co",
-        "anon_key": "YOUR_PROJECT_2_ANON_PUBLIC_KEY"
-      }
-    ]
+```json
+[
+  {
+    "url": "https://your-project-1.supabase.co",
+    "anon_key": "YOUR_PROJECT_1_ANON_PUBLIC_KEY"
+  },
+  {
+    "url": "https://your-project-2.supabase.co",
+    "anon_key": "YOUR_PROJECT_2_ANON_PUBLIC_KEY"
+  }
+]
+```
 
 Add as many projects as you want.
 
-💡 Only use anon keys — never the service_role key.  
-You can find anon keys under: Supabase Dashboard → Project Settings → API
+💡 *Only use anon keys — never the service_role key.*  
+You can find your anon key under: **Supabase Dashboard → Project Settings → API**.
 
 ---
 
 ### 3. Enable GitHub Actions
 
-Go to the Actions tab → enable workflows if required.
+Go to the **Actions** tab → enable workflows if required.
 
 ---
 
 ### 4. (Optional) Run manually once
 
-Actions tab → select the workflow → Run workflow.
+Actions tab → select **Wake Up Supabase** → click **Run workflow**.
 
 ---
 
 ## ⏱ How It Works
 
-This action runs every day at 06:00 UTC.
+This action runs automatically every day at 06:00 UTC.
 
-For each project in your SUPABASE_PROJECTS_JSON secret, it:
+For each project in your `SUPABASE_PROJECTS_JSON` secret, it:
 
 1. Calls  
-   https://your-project.supabase.co/auth/v1/health
+   `https://your-project.supabase.co/rest/v1/`
 
-2. Sends the anon key in an `apikey` header  
-3. Checks whether the project responded correctly  
-
-Supabase counts this as legitimate activity and will not pause the project.
+2. Sends the anon key in both `apikey` and `Authorization: Bearer <anon_key>` headers.
+3. PostgREST queries the database schema, which resets Supabase's auto-pause timer and keeps the project active.
 
 ---
 
 ## 🧪 Example Log Output
 
-    Found 3 projects.
-    Pinging https://abc123.supabase.co/auth/v1/health ...
-    ✔ abc123.supabase.co is awake (HTTP 200)
-    Pinging https://def456.supabase.co/auth/v1/health ...
-    ✔ def456.supabase.co is awake (HTTP 200)
+```text
+📦 Found 2 Supabase project(s).
+
+🌐 Pinging Database (PostgREST) via: https://abc123.supabase.co/rest/v1/
+✅ https://abc123.supabase.co responded with HTTP 200 — database is awake!
+
+🌐 Pinging Database (PostgREST) via: https://def456.supabase.co/rest/v1/
+✅ https://def456.supabase.co responded with HTTP 200 — database is awake!
+```
 
 ---
 
@@ -113,8 +117,8 @@ Yes — simply add all your project URLs and anon keys to the secret.
 **Can this repo be public?**  
 Yes — all sensitive data stays inside GitHub Secrets.
 
-**Does this violate Supabase rules?**  
-No. You're using public anon endpoints exactly as intended.
+**Why was this updated from `/auth/v1/health`?**  
+Supabase updated their inactivity detection so simple auth health checks no longer reset the auto-pause timer. Hitting `/rest/v1/` forces a real PostgREST query against the database engine.
 
 ---
 
