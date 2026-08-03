@@ -3,7 +3,7 @@ name: Wake Up Supabase
 on:
   schedule:
     - cron: "0 6 * * *"   # Runs automatically every day at 06:00 UTC
-  workflow_dispatch:       # Allows manual trigger from the Actions tab
+  workflow_dispatch:       # Allows manual trigger
 
 jobs:
   ping-projects:
@@ -21,31 +21,33 @@ jobs:
           fi
 
           python3 -c '
-          import json, os, urllib.request, urllib.error
+          import json, os, urllib.request, urllib.error, sys
 
           data = os.environ.get("SUPABASE_PROJECTS_JSON", "[]")
           try:
               projects = json.loads(data)
           except Exception as e:
-              print(f"❌ Could not parse SUPABASE_PROJECTS_JSON: {e}")
-              exit(1)
+              print(f"❌ Could not parse SUPABASE_PROJECTS_JSON valid format: {e}")
+              sys.exit(1)
 
           print(f"📦 Found {len(projects)} Supabase project(s).\n")
+          has_error = False
 
           for idx, proj in enumerate(projects):
               url = proj.get("url", "").rstrip("/")
               key = proj.get("anon_key", "").strip()
-              name = proj.get("name", "unnamed")
+              name = proj.get("name", f"project-{idx+1}")
 
-              display_name = f"{name} ({url})" if name != "unnamed" else url
+              display_name = f"{name} ({url})"
 
               if not url or not key:
-                  print(f"⚠️ Skipping index {idx} [{name}] — missing url or anon_key.")
+                  print(f"❌ Skipping [{name}] — missing url or anon_key in JSON.")
+                  has_error = True
                   continue
 
-              # Use /auth/v1/health which always responds HTTP 200 and wakes the DB container
-              target_url = f"{url}/auth/v1/health"
-              print(f"🌐 Pinging Database: {display_name}")
+              # Ping PostgREST engine directly to force DB activity
+              target_url = f"{url}/rest/v1/"
+              print(f"🌐 Pinging Database (PostgREST): {display_name}")
 
               req = urllib.request.Request(
                   target_url,
@@ -56,14 +58,23 @@ jobs:
               )
 
               try:
-                  with urllib.request.urlopen(req) as response:
+                  # Set timeout to 20 seconds
+                  with urllib.request.urlopen(req, timeout=20) as response:
                       code = response.getcode()
                       print(f"✅ {display_name} responded with HTTP {code} — database is awake!\n")
               except urllib.error.HTTPError as e:
+                  # PostgREST root /rest/v1/ with valid key often returns 200 OK or OpenAPI doc
                   if e.code in (200, 204):
                       print(f"✅ {display_name} responded with HTTP {e.code} — database is awake!\n")
                   else:
-                      print(f"✅ {display_name} responded with HTTP {e.code} — project is active.\n")
+                      print(f"❌ {display_name} FAILED with HTTP {e.code}: {e.reason}")
+                      print(f"   Check your URL and API Key for this project.\n")
+                      has_error = True
               except Exception as e:
                   print(f"❌ Connection error for {display_name}: {e}\n")
+                  has_error = True
+
+          if has_error:
+              print("💥 One or more project pings failed. Check the logs above.")
+              sys.exit(1)
           '
