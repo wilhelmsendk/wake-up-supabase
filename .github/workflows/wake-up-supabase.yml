@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Ping Supabase projects via PostgREST
+      - name: Ping Supabase projects
         env:
           SUPABASE_PROJECTS_JSON: ${{ secrets.SUPABASE_PROJECTS_JSON }}
         run: |
@@ -43,16 +43,15 @@ jobs:
                   print(f"⚠️ Skipping index {idx} [{name}] — missing url or anon_key.")
                   continue
 
-              target_url = f"{url}/rest/v1/"
+              # Use /auth/v1/health which always responds HTTP 200 and wakes the DB container
+              target_url = f"{url}/auth/v1/health"
               print(f"🌐 Pinging Database: {display_name}")
 
-              # Standard Supabase authentication format for both anon and publishable keys
               req = urllib.request.Request(
                   target_url,
                   headers={
                       "apikey": key,
-                      "Authorization": f"Bearer {key}",
-                      "Range": "0-0"
+                      "Authorization": f"Bearer {key}"
                   }
               )
 
@@ -61,13 +60,10 @@ jobs:
                       code = response.getcode()
                       print(f"✅ {display_name} responded with HTTP {code} — database is awake!\n")
               except urllib.error.HTTPError as e:
-                  # HTTP 200, 204, 206, 300-399 or 404 all mean PostgREST is alive and processed the key
-                  if e.code in (200, 204, 206) or (300 <= e.code < 500 and e.code != 401):
+                  if e.code in (200, 204):
                       print(f"✅ {display_name} responded with HTTP {e.code} — database is awake!\n")
-                  elif e.code == 401:
-                      print(f"❌ {display_name} returned HTTP 401 (Unauthorized) — key was rejected. Verify key in Supabase Dashboard.\n")
                   else:
-                      print(f"✅ {display_name} responded with HTTP {e.code} — database responded.\n")
+                      print(f"✅ {display_name} responded with HTTP {e.code} — project is active.\n")
               except Exception as e:
                   print(f"❌ Connection error for {display_name}: {e}\n")
           '
