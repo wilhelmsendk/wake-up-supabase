@@ -34,10 +34,9 @@ jobs:
 
           for idx, proj in enumerate(projects):
               url = proj.get("url", "").rstrip("/")
-              key = proj.get("anon_key", "")
+              key = proj.get("anon_key", "").strip()
               name = proj.get("name", "unnamed")
 
-              # Format display name (e.g. "savinghero (https://...)")
               display_name = f"{name} ({url})" if name != "unnamed" else url
 
               if not url or not key:
@@ -47,11 +46,14 @@ jobs:
               target_url = f"{url}/rest/v1/"
               print(f"🌐 Pinging Database: {display_name}")
 
+              # Format headers correctly based on key type (JWT vs Publishable sb_key)
+              auth_header = key if key.startswith("sbp_") else f"Bearer {key}"
+
               req = urllib.request.Request(
                   target_url,
                   headers={
                       "apikey": key,
-                      "Authorization": f"Bearer {key}"
+                      "Authorization": auth_header
                   }
               )
 
@@ -60,7 +62,12 @@ jobs:
                       code = response.getcode()
                       print(f"✅ {display_name} responded with HTTP {code} — database is awake!\n")
               except urllib.error.HTTPError as e:
-                  print(f"✅ {display_name} responded with HTTP {e.code} — database responded.\n")
+                  if e.code in (200, 204):
+                      print(f"✅ {display_name} responded with HTTP {e.code} — database is awake!\n")
+                  elif e.code == 401:
+                      print(f"❌ {display_name} returned HTTP 401 (Unauthorized) — Please verify your anon/publishable key.\n")
+                  else:
+                      print(f"✅ {display_name} responded with HTTP {e.code} — database responded.\n")
               except Exception as e:
                   print(f"❌ Connection error for {display_name}: {e}\n")
           '
