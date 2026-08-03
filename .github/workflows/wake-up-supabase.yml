@@ -35,13 +35,13 @@ jobs:
           for idx, proj in enumerate(projects):
               url = proj.get("url", "").rstrip("/")
               key = proj.get("anon_key", "")
-              name = proj.get("name", "")
+              name = proj.get("name", "unnamed")
 
               # Format display name (e.g. "savinghero (https://...)")
-              display_name = f"{name} ({url})" if name else url
+              display_name = f"{name} ({url})" if name != "unnamed" else url
 
               if not url or not key:
-                  print(f"⚠️ Skipping index {idx} [{name or \"unnamed\"}] — missing url or anon_key.")
+                  print(f"⚠️ Skipping index {idx} [{name}] — missing url or anon_key.")
                   continue
 
               target_url = f"{url}/rest/v1/"
