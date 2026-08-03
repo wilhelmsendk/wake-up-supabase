@@ -46,16 +46,13 @@ jobs:
               target_url = f"{url}/rest/v1/"
               print(f"🌐 Pinging Database: {display_name}")
 
-              # Dynamic auth header handling:
-              # - Legacy JWT anon keys (starting with eyJ...) require "Bearer <key>"
-              # - New publishable keys (starting with sb_...) are passed directly
-              auth_header = key if key.startswith("sb_") else f"Bearer {key}"
-
+              # Standard Supabase authentication format for both anon and publishable keys
               req = urllib.request.Request(
                   target_url,
                   headers={
                       "apikey": key,
-                      "Authorization": auth_header
+                      "Authorization": f"Bearer {key}",
+                      "Range": "0-0"
                   }
               )
 
@@ -64,10 +61,11 @@ jobs:
                       code = response.getcode()
                       print(f"✅ {display_name} responded with HTTP {code} — database is awake!\n")
               except urllib.error.HTTPError as e:
-                  if e.code in (200, 204):
+                  # HTTP 200, 204, 206, 300-399 or 404 all mean PostgREST is alive and processed the key
+                  if e.code in (200, 204, 206) or (300 <= e.code < 500 and e.code != 401):
                       print(f"✅ {display_name} responded with HTTP {e.code} — database is awake!\n")
                   elif e.code == 401:
-                      print(f"❌ {display_name} returned HTTP 401 (Unauthorized) — Please check if key/url is correct.\n")
+                      print(f"❌ {display_name} returned HTTP 401 (Unauthorized) — key was rejected. Verify key in Supabase Dashboard.\n")
                   else:
                       print(f"✅ {display_name} responded with HTTP {e.code} — database responded.\n")
               except Exception as e:
