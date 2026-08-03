@@ -35,29 +35,26 @@ Click the **Fork** button at the top right of GitHub.
 
 ---
 
-### 2. Add your Supabase projects to a GitHub Secret
+2. Add your Supabase projects to a GitHub Secret
 
 Go to:
 
-**Settings → Secrets and variables → Actions → New repository secret**
+Settings → Secrets and variables → Actions → New repository secret
 
 Create a secret named:
 
-```text
 SUPABASE_PROJECTS_JSON
-```
-Paste your projects in this JSON format (you can optionally include a "name" field for easier identification):
 
 [
   {
     "name": "savinghero",
-    "url": "[https://your-project-1.supabase.co](https://your-project-1.supabase.co)",
-    "anon_key": "YOUR_PROJECT_1_ANON_PUBLIC_KEY"
+    "url": "https://your-project-1.supabase.co",
+    "anon_key": "YOUR_PROJECT_1_ANON_OR_PUBLISHABLE_KEY"
   },
   {
     "name": "my-test-app",
-    "url": "[https://your-project-2.supabase.co](https://your-project-2.supabase.co)",
-    "anon_key": "YOUR_PROJECT_2_ANON_PUBLIC_KEY"
+    "url": "https://your-project-2.supabase.co",
+    "anon_key": "YOUR_PROJECT_2_ANON_OR_PUBLISHABLE_KEY"
   }
 ]
 
