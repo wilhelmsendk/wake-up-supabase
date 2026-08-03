@@ -76,7 +76,13 @@ You can find your API keys here:
 `Supabase Dashboard → Project Settings → API`
 
 ---
+### 💡 Important JSON Rules:
+- Put every project inside `{` and `}` brackets.
+- Put a comma `,` between project blocks.
+- **Do not** put a comma after the last project block.
+- Standard keys or `sb_publishable_` keys are both supported.
 
+> 🛠 **Troubleshooting JSON**: If your workflow fails at step 1, copy-paste your text into [jsonlint.com](https://jsonlint.com/) to find missing quotes or syntax errors.
 ## 3. Enable GitHub Actions
 
 Open the **Actions** tab and enable workflows if GitHub asks you.
