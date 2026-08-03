@@ -50,12 +50,12 @@ Paste your projects in this JSON format:
 [
   {
     "name": "savinghero",
-    "url": "[https://your-project-1.supabase.co](https://your-project-1.supabase.co)",
+    "url": "https://your-project-1.supabase.co",
     "anon_key": "YOUR_PROJECT_1_ANON_OR_PUBLISHABLE_KEY"
   },
   {
     "name": "my-test-app",
-    "url": "[https://your-project-2.supabase.co](https://your-project-2.supabase.co)",
+    "url": "https://your-project-2.supabase.co",
     "anon_key": "YOUR_PROJECT_2_ANON_OR_PUBLISHABLE_KEY"
   }
 ]
@@ -78,21 +78,21 @@ For each project in your SUPABASE_PROJECTS_JSON secret, it:
 
 Calls the Supabase Auth Health endpoint:
 
-https://your-project.supabase.co/auth/v1/health
+[https://your-project.supabase.co/auth/v1/health](https://your-project.supabase.co/auth/v1/health)
 
 Sends the key in both apikey and Authorization: Bearer <key> headers.
 
 The health check resets Supabase's auto-pause timer and keeps the project active.
 
 🧪 Example Log Output
-Plaintext
 📦 Found 2 Supabase project(s).
 
-🌐 Pinging Database: jobhero ([https://jkjbsytazfatxbhrwthv.supabase.co](https://jkjbsytazfatxbhrwthv.supabase.co))
-✅ jobhero ([https://jkjbsytazfatxbhrwthv.supabase.co](https://jkjbsytazfatxbhrwthv.supabase.co)) responded with HTTP 200 — database is awake!
+🌐 Pinging Database: jobhero (https://jkjbsytazfatxbhrwthv.supabase.co)
+✅ jobhero (https://jkjbsytazfatxbhrwthv.supabase.co) responded with HTTP 200 — database is awake!
 
-🌐 Pinging Database: savinghero ([https://wryomwolthgnobkwergv.supabase.co](https://wryomwolthgnobkwergv.supabase.co))
-✅ savinghero ([https://wryomwolthgnobkwergv.supabase.co](https://wryomwolthgnobkwergv.supabase.co)) responded with HTTP 200 — database is awake!
+🌐 Pinging Database: savinghero (https://wryomwolthgnobkwergv.supabase.co)
+✅ savinghero (https://wryomwolthgnobkwergv.supabase.co) responded with HTTP 200 — database is awake!
+
 ❓ FAQ
 Does this work for multiple Supabase accounts?
 
