@@ -5,15 +5,16 @@ A tiny GitHub Actions helper that prevents free Supabase projects from being aut
 Supabase pauses inactive free-tier projects after about a week.  
 If a project stays paused for 90 days, it is permanently deleted.
 
-This workflow performs a daily ping directly against each project's **PostgREST engine** (`/rest/v1/`) using your public `anon` key. This forces a database query execution, which resets Supabase's internal inactivity timer and keeps your projects alive.
+This workflow performs a daily ping against your projects using your public `anon` or `publishable` key. This resets Supabase's internal inactivity timer and keeps your projects alive.
 
 ---
 
 ## 🚀 Features
 
-- **Database-level pings**: Hits `/rest/v1/` to ensure Supabase registers real database activity
+- **Auth & API Pings**: Hits `/auth/v1/health` to ensure Supabase registers activity
 - **Zero extra dependencies**: Built with pure Python in GitHub Actions for fast, clean execution
 - **Multi-project support**: Keeps any number of Supabase projects awake (even across different accounts)
+- **Support for new & legacy keys**: Works with both standard `anon` JWT keys and new `sb_publishable_` keys
 - **Secure**: Keys are stored safely in GitHub Actions Secrets (never in public code or logs)
 - **Completely free**
 
@@ -21,7 +22,7 @@ This workflow performs a daily ping directly against each project's **PostgREST 
 
 ## 🛡 Security
 
-- Uses `anon` keys only (never use your `service_role` key)
+- Uses `anon` / `publishable` keys only (never use your `service_role` key)
 - Secrets stored securely in GitHub Actions Secrets
 - Workflow never prints or reveals keys in execution logs
 - Repo contains zero sensitive information
@@ -63,6 +64,7 @@ Add as many projects as you want.
 💡 Note: Only use anon or publishable keys — never use the service_role key.
 
 You can find your key under: Supabase Dashboard → Project Settings → API.
+
 3. Enable GitHub Actions
 Go to the Actions tab → enable workflows if required.
 
@@ -82,45 +84,35 @@ Sends the key in both apikey and Authorization: Bearer <key> headers.
 
 The health check resets Supabase's auto-pause timer and keeps the project active.
 
-## 🧪 Example Log Output
-
-```text
+🧪 Example Log Output
+Plaintext
 📦 Found 2 Supabase project(s).
 
-🌐 Pinging Database (PostgREST) via: https://abc123.supabase.co/rest/v1/
-✅ https://abc123.supabase.co responded with HTTP 200 — database is awake!
+🌐 Pinging Database: jobhero ([https://jkjbsytazfatxbhrwthv.supabase.co](https://jkjbsytazfatxbhrwthv.supabase.co))
+✅ jobhero ([https://jkjbsytazfatxbhrwthv.supabase.co](https://jkjbsytazfatxbhrwthv.supabase.co)) responded with HTTP 200 — database is awake!
 
-🌐 Pinging Database (PostgREST) via: https://def456.supabase.co/rest/v1/
-✅ https://def456.supabase.co responded with HTTP 200 — database is awake!
-```
+🌐 Pinging Database: savinghero ([https://wryomwolthgnobkwergv.supabase.co](https://wryomwolthgnobkwergv.supabase.co))
+✅ savinghero ([https://wryomwolthgnobkwergv.supabase.co](https://wryomwolthgnobkwergv.supabase.co)) responded with HTTP 200 — database is awake!
+❓ FAQ
+Does this work for multiple Supabase accounts?
 
----
+Yes — simply add all your project URLs and keys to the JSON secret.
 
-## ❓ FAQ
+Can this repo be public?
 
-**Does this work for multiple Supabase accounts?**  
-Yes — simply add all your project URLs and anon keys to the secret.
-
-**Can this repo be public?**  
 Yes — all sensitive data stays inside GitHub Secrets.
 
-**Why was this updated from `/auth/v1/health`?**  
-Supabase updated their inactivity detection so simple auth health checks no longer reset the auto-pause timer. Hitting `/rest/v1/` forces a real PostgREST query against the database engine.
+❤️ Contribute
+This project is intentionally minimal.
 
----
-
-## ❤️ Contribute
-
-This project is intentionally minimal.  
 Feel free to open issues or PRs to add features like:
 
-- Slack / Discord alerts  
-- Error notifications  
-- JSON schema validation  
-- Multi-region health checks  
-- Optional logging dashboard  
+Slack / Discord alerts
 
----
+Error notifications
 
-Enjoy!  
+JSON schema validation
+
+Enjoy!
+
 @wilhelmsendk
